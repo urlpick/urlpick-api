@@ -37,7 +37,7 @@ func (r *urlRepository) Save(ctx context.Context, url *url.URL) error {
 
 func (r *urlRepository) FindByHash(ctx context.Context, hash string) (*url.URL, error) {
 	query := `
-        SELECT id, hash, original_url, created_at, last_visit
+        SELECT id, hash, original_url, created_at
         FROM urls WHERE hash = ?
     `
 	var u url.URL
