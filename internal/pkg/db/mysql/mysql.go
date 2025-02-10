@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/urlpick/urlpick-api/internal/pkg/config"
 )
 
 func NewConnection() (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true",
 		config.AppConfig.MySQLUser,
 		config.AppConfig.MySQLPassword,
 		config.AppConfig.MySQLHost,
@@ -26,5 +28,40 @@ func NewConnection() (*sql.DB, error) {
 		return nil, err
 	}
 
+	if err := runMigrations(db); err != nil {
+		return nil, fmt.Errorf("migration failed: %w", err)
+	}
+
 	return db, nil
+}
+
+func runMigrations(db *sql.DB) error {
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create driver: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations/mysql",
+		"mysql",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create migration instance: %w", err)
+	}
+
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return fmt.Errorf("failed to get migration version: %w", err)
+	}
+
+	if dirty {
+		return fmt.Errorf("dirty migration found at version %d - manual intervention required. Please check database state and resolve the issue", version)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
 }
