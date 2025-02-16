@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 
 	"github.com/urlpick/urlpick-api/internal/pkg/config"
+	"github.com/urlpick/urlpick-api/internal/pkg/utils/errors"
+	"github.com/urlpick/urlpick-api/internal/pkg/utils/turnstile"
 )
 
 type Service struct {
@@ -17,6 +19,10 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) CreateShortURL(ctx context.Context, req CreateURLRequest) (*CreateURLResponse, error) {
+	if !turnstile.VerifyTurnstileToken(req.TurnstileToken) {
+		return nil, errors.Unauthorized("invalid turnstile token")
+	}
+
 	hash, err := generateHash()
 	if err != nil {
 		return nil, err
