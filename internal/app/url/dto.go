@@ -3,7 +3,8 @@ package url
 import "time"
 
 type CreateURLRequest struct {
-	URL string `json:"url" binding:"required,url"`
+	URL            string `json:"url" binding:"required,url"`
+	TurnstileToken string `json:"turnstile_token" binding:"required"`
 }
 
 type CreateURLResponse struct {
