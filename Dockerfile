@@ -1,8 +1,9 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23.12-alpine AS builder
 WORKDIR /app
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -trimpath -o main ./cmd/api
 
 FROM scratch
 WORKDIR /app
@@ -10,4 +11,5 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/main .
 COPY migrations/ migrations/
 EXPOSE 8080
+USER 65534:65534
 CMD ["/app/main"]
