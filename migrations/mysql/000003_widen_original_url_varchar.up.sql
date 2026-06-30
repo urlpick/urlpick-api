@@ -1,0 +1,1 @@
+ALTER TABLE urls MODIFY original_url VARCHAR(2048) NOT NULL;
