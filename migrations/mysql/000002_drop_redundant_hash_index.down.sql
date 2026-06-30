@@ -1,0 +1,1 @@
+ALTER TABLE urls ADD INDEX idx_hash (hash);
