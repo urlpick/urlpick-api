@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/urlpick/urlpick-api/internal/pkg/utils/errors"
 )
@@ -17,7 +19,7 @@ func ErrorHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			c.JSON(500, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Internal Server Error",
 			})
 		}
