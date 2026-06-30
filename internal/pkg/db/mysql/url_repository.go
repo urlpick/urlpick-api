@@ -26,10 +26,10 @@ func (r *urlRepository) Save(ctx context.Context, u *url.URL) error {
 	defer cancel()
 
 	query := `
-        INSERT INTO urls (hash, original_url)
-        VALUES (?, ?)
+        INSERT INTO urls (hash, original_url, created_at)
+        VALUES (?, ?, ?)
     `
-	result, err := r.db.ExecContext(ctx, query, u.Hash, u.OriginalURL)
+	result, err := r.db.ExecContext(ctx, query, u.Hash, u.OriginalURL, u.CreatedAt)
 	if err != nil {
 		var mysqlErr *driver.MySQLError
 		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {

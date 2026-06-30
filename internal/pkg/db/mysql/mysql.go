@@ -3,7 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -41,7 +41,7 @@ func NewConnection() (*sql.DB, error) {
 		if time.Now().After(deadline) {
 			return nil, fmt.Errorf("database not reachable after retries: %w", err)
 		}
-		log.Printf("waiting for database to be ready: %v", err)
+		slog.Warn("waiting for database to be ready", "error", err)
 		time.Sleep(2 * time.Second)
 	}
 
