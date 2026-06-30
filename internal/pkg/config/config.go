@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+)
 
 type Config struct {
 	AppPort            string
@@ -25,5 +28,30 @@ func Load() {
 		MySQLPassword:      os.Getenv("MYSQL_PASSWORD"),
 		BaseURL:            os.Getenv("BASE_URL"),
 		TurnstileSecretKey: os.Getenv("TURNSTILE_SECRET_KEY"),
+	}
+
+	required := map[string]string{
+		"APP_PORT":             AppConfig.AppPort,
+		"MYSQL_HOST":           AppConfig.MySQLHost,
+		"MYSQL_PORT":           AppConfig.MySQLPort,
+		"MYSQL_DATABASE":       AppConfig.MySQLDatabase,
+		"MYSQL_USER":           AppConfig.MySQLUser,
+		"MYSQL_PASSWORD":       AppConfig.MySQLPassword,
+		"BASE_URL":             AppConfig.BaseURL,
+		"TURNSTILE_SECRET_KEY": AppConfig.TurnstileSecretKey,
+	}
+
+	var missing []string
+	for _, key := range []string{
+		"APP_PORT", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE",
+		"MYSQL_USER", "MYSQL_PASSWORD", "BASE_URL", "TURNSTILE_SECRET_KEY",
+	} {
+		if required[key] == "" {
+			missing = append(missing, key)
+		}
+	}
+
+	if len(missing) > 0 {
+		log.Fatalf("missing required environment variables: %v", missing)
 	}
 }

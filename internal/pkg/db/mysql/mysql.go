@@ -3,6 +3,8 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
@@ -25,8 +27,22 @@ func NewConnection() (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// DB may not be ready at startup; retry so the pod doesn't crash-loop.
+	deadline := time.Now().Add(60 * time.Second)
+	for {
+		err = db.Ping()
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("database not reachable after retries: %w", err)
+		}
+		log.Printf("waiting for database to be ready: %v", err)
+		time.Sleep(2 * time.Second)
 	}
 
 	if err := runMigrations(db); err != nil {
