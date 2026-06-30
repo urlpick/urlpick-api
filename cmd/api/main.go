@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -16,11 +17,14 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	config.Load()
 
 	mysqlDB, err := mysql.NewConnection()
 	if err != nil {
-		log.Fatalf("Failed to connect to MySQL: %v", err)
+		slog.Error("failed to connect to MySQL", "error", err)
+		os.Exit(1)
 	}
 	defer mysqlDB.Close()
 
@@ -29,7 +33,9 @@ func main() {
 	urlHandler := url.NewHandler(urlService)
 
 	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(middleware.Logger())
 	router.SetTrustedProxies(nil)
 	router.Use(middleware.CORS())
 	router.Use(middleware.ErrorHandler())
@@ -63,7 +69,8 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
+			slog.Error("failed to start server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -74,6 +81,6 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Server shutdown error: %v", err)
+		slog.Error("server shutdown error", "error", err)
 	}
 }

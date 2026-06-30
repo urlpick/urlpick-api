@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	stderrors "errors"
 	neturl "net/url"
+	"time"
 
 	"github.com/urlpick/urlpick-api/internal/pkg/config"
 	"github.com/urlpick/urlpick-api/internal/pkg/utils/errors"
@@ -19,15 +20,19 @@ const hashLength = 8
 const maxSaveAttempts = 5
 
 type Service struct {
-	repo Repository
+	repo   Repository
+	verify func(ctx context.Context, token string) bool
 }
 
 func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+	return &Service{
+		repo:   repo,
+		verify: turnstile.VerifyTurnstileToken,
+	}
 }
 
 func (s *Service) CreateShortURL(ctx context.Context, req CreateURLRequest) (*CreateURLResponse, error) {
-	if !turnstile.VerifyTurnstileToken(ctx, req.TurnstileToken) {
+	if !s.verify(ctx, req.TurnstileToken) {
 		return nil, errors.Unauthorized("invalid turnstile token")
 	}
 
@@ -46,6 +51,7 @@ func (s *Service) CreateShortURL(ctx context.Context, req CreateURLRequest) (*Cr
 		u = &URL{
 			Hash:        hash,
 			OriginalURL: req.URL,
+			CreatedAt:   time.Now().UTC(),
 		}
 
 		err = s.repo.Save(ctx, u)

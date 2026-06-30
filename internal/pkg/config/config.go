@@ -1,7 +1,8 @@
 package config
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"os"
 )
 
@@ -18,8 +19,8 @@ type Config struct {
 
 var AppConfig Config
 
-func Load() {
-	AppConfig = Config{
+func Parse() (Config, error) {
+	cfg := Config{
 		AppPort:            os.Getenv("APP_PORT"),
 		MySQLHost:          os.Getenv("MYSQL_HOST"),
 		MySQLPort:          os.Getenv("MYSQL_PORT"),
@@ -30,15 +31,15 @@ func Load() {
 		TurnstileSecretKey: os.Getenv("TURNSTILE_SECRET_KEY"),
 	}
 
-	required := map[string]string{
-		"APP_PORT":             AppConfig.AppPort,
-		"MYSQL_HOST":           AppConfig.MySQLHost,
-		"MYSQL_PORT":           AppConfig.MySQLPort,
-		"MYSQL_DATABASE":       AppConfig.MySQLDatabase,
-		"MYSQL_USER":           AppConfig.MySQLUser,
-		"MYSQL_PASSWORD":       AppConfig.MySQLPassword,
-		"BASE_URL":             AppConfig.BaseURL,
-		"TURNSTILE_SECRET_KEY": AppConfig.TurnstileSecretKey,
+	values := map[string]string{
+		"APP_PORT":             cfg.AppPort,
+		"MYSQL_HOST":           cfg.MySQLHost,
+		"MYSQL_PORT":           cfg.MySQLPort,
+		"MYSQL_DATABASE":       cfg.MySQLDatabase,
+		"MYSQL_USER":           cfg.MySQLUser,
+		"MYSQL_PASSWORD":       cfg.MySQLPassword,
+		"BASE_URL":             cfg.BaseURL,
+		"TURNSTILE_SECRET_KEY": cfg.TurnstileSecretKey,
 	}
 
 	var missing []string
@@ -46,12 +47,23 @@ func Load() {
 		"APP_PORT", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE",
 		"MYSQL_USER", "MYSQL_PASSWORD", "BASE_URL", "TURNSTILE_SECRET_KEY",
 	} {
-		if required[key] == "" {
+		if values[key] == "" {
 			missing = append(missing, key)
 		}
 	}
 
 	if len(missing) > 0 {
-		log.Fatalf("missing required environment variables: %v", missing)
+		return Config{}, fmt.Errorf("missing required environment variables: %v", missing)
 	}
+
+	return cfg, nil
+}
+
+func Load() {
+	cfg, err := Parse()
+	if err != nil {
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
+	AppConfig = cfg
 }
